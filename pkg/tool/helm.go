@@ -18,6 +18,8 @@ import (
 	"fmt"
 
 	"github.com/helm/chart-testing/v3/pkg/exec"
+
+	"strings"
 )
 
 type Helm struct {
@@ -35,7 +37,14 @@ func NewHelm(exec exec.ProcessExecutor, extraArgs []string, extraSetArgs []strin
 }
 
 func (h Helm) AddRepo(name string, url string, extraArgs []string) error {
-	return h.exec.RunProcess("helm", "repo", "add", name, url, extraArgs)
+	const ociPrefix string = "oci://"
+
+	if strings.HasPrefix(url, ociPrefix) {
+		registryDomain := url[len(ociPrefix):]
+		return h.exec.RunProcess("helm", "registry", "login", registryDomain, extraArgs)
+	} else {
+		return h.exec.RunProcess("helm", "repo", "add", name, url, extraArgs)
+	}
 }
 
 func (h Helm) BuildDependencies(chart string) error {
